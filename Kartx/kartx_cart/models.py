@@ -15,7 +15,6 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-<<<<<<< HEAD
 
 
 class Address(models.Model):
@@ -39,5 +38,3 @@ class Order(models.Model):
     shipping_method = models.ForeignKey(ShippingMethod, on_delete=models.CASCADE)
     total_cost = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
-=======
->>>>>>> 02eee68f634674889b7fefbf145db846b2c87196
