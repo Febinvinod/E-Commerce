@@ -11,7 +11,7 @@ class ProductType(models.Model):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=200, unique=True)
     description = models.TextField(blank=True)
 
     def __str__(self):

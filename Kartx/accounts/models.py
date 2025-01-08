@@ -67,7 +67,7 @@ class UserManager(BaseUserManager):
 
 
 # User Model
-class User(AbstractBaseUser):
+class User(AbstractBaseUser): 
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
     is_vendor = models.BooleanField(default=False)

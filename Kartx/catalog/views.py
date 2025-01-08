@@ -28,7 +28,7 @@ class CategoryAPIView(APIView):
 
 # View for products
 class ProductAPIView(APIView):
-    def get(self, request):
+    def get(self,):
         products = Product.objects.all()
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -111,7 +111,7 @@ class ProductAPIView(APIView):
 
 # View for product attributes
 class ProductAttributeAPIView(APIView):
-    def get(self, request):
+    def get(self,):
         attributes = ProductAttribute.objects.all()
         serializer = ProductAttributeSerializer(attributes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -141,7 +141,7 @@ class AttributeValueAPIView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, pk):
+    def delete(self, pk):
         try:
             value = AttributeValue.objects.get(pk=pk)
             value.delete()
@@ -196,7 +196,7 @@ class ProductSearchAPIView(APIView):
     
 
 class ProductAnalyticsAPIView(APIView):
-    def get(self, request):
+    def get(self):
         # Total sales per product
         total_sales = Product.objects.annotate(
             total_sales=Sum('sale__quantity')
@@ -216,7 +216,7 @@ class ProductAnalyticsAPIView(APIView):
         ).values('id', 'name', 'average_rating')
 
         # Sales per vendor
-        vendor_sales = Sale.objects.values('vendor__id').annotate(
+        vendor_sales = Sale.objects.values('vendor__id').annotate( # type: ignore
             total_sales=Sum('quantity')
         ).values('vendor__id', 'total_sales')
 
@@ -238,7 +238,7 @@ class AllCategoriesAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class ProductListingAPIView(APIView):
-    def get(self, request):
+    def get(self):
         products = Product.objects.prefetch_related('attributes__values').all()
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
