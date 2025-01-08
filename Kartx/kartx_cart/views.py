@@ -4,7 +4,78 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Cart, CartItem
 from .serializers import AddCartItemSerializer, CartItemSerializer
+from .models import Cart, Address, ShippingMethod, Order
+from .serializers import AddressSerializer, ShippingMethodSerializer, CheckoutSerializer
+from django.shortcuts import get_object_or_404
 
+class AddressView(APIView):
+    def get(self, request):
+        """Get all addresses for the user."""
+        if request.user.is_authenticated:
+            addresses = Address.objects.filter(user=request.user)
+        else:
+            session_key = request.session.session_key
+            addresses = Address.objects.filter(session_key=session_key)
+
+        serializer = AddressSerializer(addresses, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        """Add a new address."""
+        if not request.user.is_authenticated and not request.session.session_key:
+            request.session.create()
+
+        serializer = AddressSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user if request.user.is_authenticated else None, 
+                            session_key=request.session.session_key)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ShippingMethodsView(APIView):
+    def get(self, request):
+        """Get all available shipping methods."""
+        shipping_methods = ShippingMethod.objects.all()
+        serializer = ShippingMethodSerializer(shipping_methods, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    def post(self, request):
+        """Add a new shipping method."""
+        serializer = ShippingMethodSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CheckoutView(APIView):
+    def post(self, request):
+        """Process checkout."""
+        cart = get_object_or_404(Cart, user=request.user if request.user.is_authenticated else None,
+                                 session_key=request.session.session_key if not request.user.is_authenticated else None)
+
+        serializer = CheckoutSerializer(data=request.data)
+        if serializer.is_valid():
+            address_id = serializer.validated_data['address_id']
+            shipping_method_id = serializer.validated_data['shipping_method_id']
+
+            address = get_object_or_404(Address, id=address_id)
+            shipping_method = get_object_or_404(ShippingMethod, id=shipping_method_id)
+
+            # Calculate total cost
+            total_cost = sum(item.quantity * 10 for item in cart.items.all())  # Example: Replace '10' with actual product cost
+            total_cost += shipping_method.cost
+
+            # Create Order
+            order = Order.objects.create(
+                cart=cart, 
+                address=address, 
+                shipping_method=shipping_method,
+                total_cost=total_cost
+            )
+
+            return Response({"message": "Checkout successful.", "order_id": order.id}, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 # Simulated ProductService for product validation
 class ProductService:
     @staticmethod
