@@ -230,3 +230,60 @@ class ProductAnalyticsAPIView(APIView):
         }
 
         return Response(analytics_data, status=status.HTTP_200_OK)
+    
+class AllCategoriesAPIView(APIView):
+    def get(self, request):
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class ProductListingAPIView(APIView):
+    def get(self, request):
+        products = Product.objects.prefetch_related('attributes__values').all()
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class JSONSearchAPIView(APIView):
+    def post(self, request):
+        search_params = request.data.get("search", {})
+        products = Product.objects.all()
+
+        # Apply filters dynamically
+        if 'name' in search_params:
+            products = products.filter(name__icontains=search_params['name'])
+        if 'brand' in search_params:
+            products = products.filter(brand__icontains=search_params['brand'])
+        if 'category' in search_params:
+            products = products.filter(category__name__icontains=search_params['category'])
+        if 'min_price' in search_params:
+            products = products.filter(price__gte=search_params['min_price'])
+        if 'max_price' in search_params:
+            products = products.filter(price__lte=search_params['max_price'])
+
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class UserProfileAPIView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        serializer = UserProfileSerializer(profile)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        serializer = UserProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
