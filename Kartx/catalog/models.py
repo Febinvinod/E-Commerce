@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group, Permission
 
 class ProductType(models.Model):
     name = models.CharField(max_length=255)
@@ -9,7 +11,7 @@ class ProductType(models.Model):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=200, unique=True)
     description = models.TextField(blank=True)
 
     def __str__(self):
@@ -47,6 +49,16 @@ class AttributeValue(models.Model):
     def __str__(self):
         return f"{self.value}: ${self.price}"
 
+class User(AbstractUser):
+    # Custom related_name to avoid clashes
+    groups = models.ManyToManyField(Group, related_name='catalog_groups')
+    user_permissions = models.ManyToManyField(Permission, related_name='catalog_user_permissions')
 
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    bio = models.TextField(blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True)
+    phone_number = models.CharField(max_length=15, blank=True)
 
-
+    def __str__(self):
+        return self.user.username

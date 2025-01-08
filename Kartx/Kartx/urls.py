@@ -22,4 +22,6 @@ urlpatterns = [
     path('api/', include('catalog.urls')),
     path('', include('kartx_cart.urls')),
     path('api/accounts/', include('accounts.urls')),
+    # path('notification_system/', include('notifications.urls')),  # Include the notifications app URLs
+    path('notification_system/', include('notification_system.urls'))
 ]
