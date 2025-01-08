@@ -27,16 +27,23 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# settings.py
+PRODUCT_SERVICE_URL = "https://external-product-api.example.com/api"
+
 
 # Application definition
 
 INSTALLED_APPS = [
+    'kartx_cart',
+    'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'catalog',
+    'accounts'
 ]
 
 MIDDLEWARE = [
