@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/', include('catalog.urls')),
     path('', include('Kartx_cart.urls')),
     path('api/accounts/', include('accounts.urls')),
+    path('api/', include('payment.urls')),
 ]
