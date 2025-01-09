@@ -6,7 +6,7 @@ from .serializers import *
 from rest_framework.generics import ListAPIView
 from rest_framework import status
 from django.db.models import Sum, Count,F
-from django.db.models import Q
+from django.db.models import Q,Prefetch
 
 class ProductTypeListAPIView(ListAPIView):
     queryset = ProductType.objects.all()
@@ -305,10 +305,7 @@ class AllCategoriesAPIView(APIView):
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-from rest_framework.generics import ListAPIView
-from .models import Product
-from .serializers import ProductSerializer
-from django.db.models import Q, Prefetch
+
 
 
 class ProductListAPIView(ListAPIView):
