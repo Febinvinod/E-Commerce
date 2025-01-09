@@ -1,5 +1,5 @@
 """
-URL configuration for Kartx project.
+URL configuration for EcommerceApp project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.1/topics/http/urls/
@@ -14,16 +14,17 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import path,include
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import CustomUserViewSet, VendorViewSet, ProductViewSet, SaleViewSet
+
+router = DefaultRouter()
+router.register(r'users', CustomUserViewSet)
+router.register(r'vendors', VendorViewSet)
+router.register(r'products', ProductViewSet)
+router.register(r'sales', SaleViewSet)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('catalog.urls')),
-    path('', include('kartx_cart.urls')),
-    path('ordertrack/', include('ordertrack.urls')),
-    path('api/accounts/', include('accounts.urls')),
-    # path('notification_system/', include('notifications.urls')),  # Include the notifications app URLs
-    path('notification_system/', include('notification_system.urls')),
-    path('api/', include('custom_admin.urls')),
+    path('', include(router.urls)),
 ]
+
