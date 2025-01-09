@@ -231,6 +231,53 @@ class ProductAnalyticsAPIView(APIView):
 
         return Response(analytics_data, status=status.HTTP_200_OK)
     
+
+class VendorDashboardView(APIView):
+    def get(self, request):
+        # Get the vendor_id from query parameters
+        vendor_id = request.query_params.get('vendor_id')
+        if not vendor_id:
+            return Response({"error": "vendor_id is required"}, status=400)
+
+        try:
+            # Convert vendor_id to an integer
+            vendor_id = int(vendor_id)
+        except ValueError:
+            return Response({"error": "Invalid vendor_id. Must be an integer."}, status=400)
+
+        # Total sales (quantity of products sold)
+        total_sales = Order.objects.filter(vendor_id=vendor_id, status='completed').aggregate(
+            total=models.Sum('quantity')
+        )['total'] or 0
+
+        # Total earnings
+        total_earnings = Order.objects.filter(vendor_id=vendor_id, status='completed').aggregate(
+            earnings=models.Sum('total_price')
+        )['earnings'] or 0
+
+        # Recent orders
+        recent_orders = Order.objects.filter(vendor_id=vendor_id).order_by('-created_at')[:5]
+        recent_orders_data = [
+            {
+                "order_id": order.id,
+                "product": order.product.name,
+                "quantity": order.quantity,
+                "total_price": order.total_price,
+                "status": order.status,
+                "date": order.created_at,
+            }
+            for order in recent_orders
+        ]
+
+        # Response data
+        dashboard_data = {
+            "total_sales": total_sales,
+            "total_earnings": total_earnings,
+            "recent_orders": recent_orders_data,
+        }
+        return Response(dashboard_data)
+
+    
 class AllCategoriesAPIView(APIView):
     def get(self, request):
         categories = Category.objects.all()
