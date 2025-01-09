@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'catalog',
     'accounts',
-    'notification_system'
+    'notification_system',
+    'review_rating_system'
 ]
 
 MIDDLEWARE = [
