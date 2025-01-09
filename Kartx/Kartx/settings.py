@@ -50,25 +50,25 @@ INSTALLED_APPS = [
     'notification_system',
     'review_rating_system',
     'rest_framework_simplejwt',
-    'OAuth',
-    'django.contrib.sites',
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google'
+    # 'OAuth',
+    # 'django.contrib.sites',
+    # 'allauth',
+    # 'allauth.account',
+    # 'allauth.socialaccount',
+    # 'allauth.socialaccount.providers.google'
 ]
 
-SITE_ID = 2
+# SITE_ID = 2
 
-SOCIALACCOUNT_PROVIDERS = {
-    "google":{
-        "scope":[
-            "profile",
-            "email"
-        ],
-        "AUTH_PARAMS":{"access_type":"online"}
-    }
-}
+# SOCIALACCOUNT_PROVIDERS = {
+#     "google":{
+#         "scope":[
+#             "profile",
+#             "email"
+#         ],
+#         "AUTH_PARAMS":{"access_type":"online"}
+#     }
+# }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -160,14 +160,14 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',  # Default backend
-    'allauth.account.auth_backends.AuthenticationBackend',  # For allauth
-]
+# AUTHENTICATION_BACKENDS = [
+#     'django.contrib.auth.backends.ModelBackend',  # Default backend
+#     'allauth.account.auth_backends.AuthenticationBackend',  # For allauth
+# ]
 
 
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
+# LOGIN_REDIRECT_URL = "/"
+# LOGOUT_REDIRECT_URL = "/"
 
 RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
 
