@@ -24,5 +24,9 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')),
     # path('notification_system/', include('notifications.urls')),  # Include the notifications app URLs
     path('notification_system/', include('notification_system.urls')),
+<<<<<<< HEAD
      path('api/', include('review_rating_system.urls')),
+=======
+    path('api/', include('custom_admin.urls')),
+>>>>>>> 16344d5c23b29ace7f58595d27dfe004beaea2e6
 ]
