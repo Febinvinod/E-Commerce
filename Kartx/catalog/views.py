@@ -7,6 +7,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework import status
 from django.db.models import Sum, Count,F
 from django.db.models import Q,Prefetch
+from django.shortcuts import render
 
 class ProductTypeListAPIView(ListAPIView):
     queryset = ProductType.objects.all()
@@ -387,3 +388,6 @@ class UserProfileAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+def product_list_view(request):
+    products = Product.objects.all()  # Fetch all products from the database
+    return render(request, 'catalog/product_list.html', {'products': products})
