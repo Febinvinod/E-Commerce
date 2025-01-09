@@ -27,7 +27,9 @@ class Product(models.Model):
     brand = models.CharField(max_length=255, blank=True)
     rating = models.FloatField(default=0.0)
     image = models.ImageField(upload_to='product_images/', blank=True)
-    product_type = models.ForeignKey(ProductType, related_name='products', on_delete=models.SET_NULL, null=True)
+    # product_type = models.ForeignKey(ProductType, related_name='products', on_delete=models.SET_NULL, null=True)
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.00)  # Default 10% admin commission
+    approved = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -64,7 +66,7 @@ class UserProfile(models.Model):
         return self.user.username
 
 class Order(models.Model):
-    vendor_id = models.IntegerField()  # To associate orders with a vendor
+    vendor_id = models.IntegerField()  # Placeholder for vendor association
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='orders')
     quantity = models.PositiveIntegerField()
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -75,8 +77,19 @@ class Order(models.Model):
     ])
     created_at = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def admin_earnings(self):
+        """Calculate admin's share from the order."""
+        return (self.total_price * self.product.commission_rate) / 100
+
+    @property
+    def vendor_earnings(self):
+        """Calculate vendor's share from the order."""
+        return self.total_price - self.admin_earnings
+
     def __str__(self):
         return f"Order {self.id} - {self.product.name} - {self.status}"
+
 
 
 # SalesSummary model (optional for faster dashboard calculations)

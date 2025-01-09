@@ -14,11 +14,12 @@ class VendorSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ProductSerializer(serializers.ModelSerializer):
-    vendor = VendorSerializer()
+    vendor_name = serializers.CharField(source='vendor.user.username', read_only=True)
+    vendor_id = serializers.IntegerField(source='vendor.id', read_only=True)
 
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = ['id', 'name', 'description', 'price', 'vendor_name', 'vendor_id']
 
 class SaleSerializer(serializers.ModelSerializer):
     vendor = VendorSerializer()
