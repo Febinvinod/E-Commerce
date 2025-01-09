@@ -12,7 +12,6 @@ class CartItemSerializer(serializers.ModelSerializer):
         model = CartItem
         fields = ['id', 'product_id', 'quantity']
 
-
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
