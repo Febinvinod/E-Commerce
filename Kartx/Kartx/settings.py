@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'catalog',
     'accounts',
     'notification_system',
-    'custom_admin'
+    'custom_admin',
+    'payment'
 ]
 
 MIDDLEWARE = [

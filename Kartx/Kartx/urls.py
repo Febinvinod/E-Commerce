@@ -25,4 +25,6 @@ urlpatterns = [
     # path('notification_system/', include('notifications.urls')),  # Include the notifications app URLs
     path('notification_system/', include('notification_system.urls')),
     path('api/', include('custom_admin.urls')),
+    path('api/', include('payment.urls')),
+
 ]
