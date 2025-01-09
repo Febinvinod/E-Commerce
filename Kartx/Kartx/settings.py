@@ -33,7 +33,7 @@ PRODUCT_SERVICE_URL = "https://external-product-api.example.com/api"
 
 
 # Application definition
-SITE_ID = 1
+
 
 
 INSTALLED_APPS = [
@@ -51,12 +51,14 @@ INSTALLED_APPS = [
     'review_rating_system',
     'rest_framework_simplejwt',
     'OAuth',
-    'django-contrib.sites',
+    'django.contrib.sites',
     'allauth',
     'allauth.account',
-    'allauth.socia;acount',
-    'allauth.socialaccount.provider.google'
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google'
 ]
+
+SITE_ID = 2
 
 SOCIALACCOUNT_PROVIDERS = {
     "google":{
@@ -73,6 +75,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -157,10 +160,11 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTHENTICATION_BACKENDS = {
-    "django-contrib.auth.backends.ModelBackend",
-    "allauth.accounts.auth_backends.AuthenticationBackend"
-}
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Default backend
+    'allauth.account.auth_backends.AuthenticationBackend',  # For allauth
+]
+
 
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
