@@ -1,6 +1,6 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Cart, CartItem
+from .models import Cart, CartItem, RazorpayOrder
 
 class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,3 +13,12 @@ class CartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cart
         fields = ['id', 'user', 'created_at', 'updated_at', 'items']
+class TransactionHistorySerializer(serializers.ModelSerializer):
+    # If RazorpayOrder is a related model, you can serialize it like this
+    order_id = serializers.CharField(source='razorpayorder.order_id')
+    payment_id = serializers.CharField(source='razorpayorder.payment_id')
+    payment_status = serializers.CharField(source='razorpayorder.payment_status')
+
+    class Meta:
+        model = Cart
+        fields = ['id', 'order_id', 'payment_id', 'payment_status']
