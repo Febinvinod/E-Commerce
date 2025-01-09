@@ -1,5 +1,4 @@
 from django.urls import path
-from .views import AddItemToCartAPIView, CreateRazorpayOrderAPIView, CreateCartAPIView, VerifyPaymentAPIView
 from . import views
 
 urlpatterns = [
@@ -16,4 +15,6 @@ urlpatterns = [
     path('payment/verify/', views.VerifyPaymentAPIView.as_view(), name='verify_payment'),
     path('checkout/<int:cart_id>/', views.checkout_view, name='checkout'),
     path('order-confirmation/', views.order_confirmation, name='order_confirmation'),
+    path('payment-details/<int:cart_id>/', views.RetrievePaymentDetailsAPIView.as_view(), name='payment_details'),
+    path('transaction-history/', views.TransactionHistoryAPIView.as_view(), name='transaction-history'),
 ]
