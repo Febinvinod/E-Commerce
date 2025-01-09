@@ -36,6 +36,7 @@ PRODUCT_SERVICE_URL = "https://external-product-api.example.com/api"
 
 INSTALLED_APPS = [
     'kartx_cart',
+    'ordertrack',
     'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',

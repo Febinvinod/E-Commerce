@@ -7,6 +7,8 @@ from .serializers import AddCartItemSerializer, CartItemSerializer
 from .models import Cart, Address, ShippingMethod, Order
 from .serializers import AddressSerializer, ShippingMethodSerializer, CheckoutSerializer
 from django.shortcuts import get_object_or_404
+from ordertrack.models import OrderStatus
+
 
 class AddressView(APIView):
     def get(self, request):
@@ -50,32 +52,59 @@ class ShippingMethodsView(APIView):
 class CheckoutView(APIView):
     def post(self, request):
         """Process checkout."""
-        cart = get_object_or_404(Cart, user=request.user if request.user.is_authenticated else None,
-                                 session_key=request.session.session_key if not request.user.is_authenticated else None)
+        # Get the cart based on user or session
+        cart = get_object_or_404(
+            Cart,
+            user=request.user if request.user.is_authenticated else None,
+            session_key=request.session.session_key if not request.user.is_authenticated else None
+        )
 
+        # Check if an order already exists for this cart
+        if Order.objects.filter(cart=cart).exists():
+            return Response(
+                {"error": "An order has already been placed with this cart."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate checkout data
         serializer = CheckoutSerializer(data=request.data)
         if serializer.is_valid():
             address_id = serializer.validated_data['address_id']
             shipping_method_id = serializer.validated_data['shipping_method_id']
 
+            # Get address and shipping method
             address = get_object_or_404(Address, id=address_id)
             shipping_method = get_object_or_404(ShippingMethod, id=shipping_method_id)
 
             # Calculate total cost
-            total_cost = sum(item.quantity * 10 for item in cart.items.all())  # Example: Replace '10' with actual product cost
+            total_cost = sum(
+                item.quantity * 10 for item in cart.items.all()
+            )  # Example: Replace '10' with actual product cost
             total_cost += shipping_method.cost
 
             # Create Order
             order = Order.objects.create(
-                cart=cart, 
-                address=address, 
+                cart=cart,
+                address=address,
                 shipping_method=shipping_method,
                 total_cost=total_cost
             )
 
-            return Response({"message": "Checkout successful.", "order_id": order.id}, status=status.HTTP_201_CREATED)
+            # Update order status
+            OrderStatus.objects.create(order=order, status='processing')
+
+            # Clear the cart
+            cart.items.all().delete()  # Clear all cart items
+            # Alternatively, delete the cart completely if needed:
+            # cart.delete()
+
+            return Response(
+                {"message": "Checkout successful.", "order_id": order.id},
+                status=status.HTTP_201_CREATED
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 # Simulated ProductService for product validation
 class ProductService:
     @staticmethod
