@@ -62,3 +62,29 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return self.user.username
+
+class Order(models.Model):
+    vendor_id = models.IntegerField()  # To associate orders with a vendor
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='orders')
+    quantity = models.PositiveIntegerField()
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=50, choices=[
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled')
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order {self.id} - {self.product.name} - {self.status}"
+
+
+# SalesSummary model (optional for faster dashboard calculations)
+class SalesSummary(models.Model):
+    vendor_id = models.IntegerField()  # Vendor associated with the summary
+    total_sales = models.PositiveIntegerField(default=0)
+    total_earnings = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Sales Summary for Vendor {self.vendor_id}"
