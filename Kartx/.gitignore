@@ -28,24 +28,3 @@ db.sqlite3
 env
 pyc
 _pycache_
-
-# Ignore migration files but keep the folder structure inside Kartx/accounts
-Kartx/accounts/migrations/*.pyc
-# Kartx/accounts/migrations/*.__init__.py
-Kartx/accounts/migrations/*.pyo
-Kartx/accounts/migrations/__pycache__/
-Kartx/accounts/migrations/*.log
-
-# Allow initial migration files (keep __init__.py inside Kartx/accounts/migrations)
-!Kartx/accounts/migrations/__init__.py
-
-
-*.pyc
-__pycache__/
-
-__init__
-catalog/__pycache__/models.cpython-310.pyc
-catalog/__pycache__/urls.cpython-310.pyc
-catalog/__pycache__/views.cpython-310.pyc
-
-
