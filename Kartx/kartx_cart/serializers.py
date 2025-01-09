@@ -1,9 +1,7 @@
 from rest_framework import serializers
 from .models import CartItem
-
 from rest_framework import serializers
 from .models import Address, ShippingMethod, Order
-
 
 class AddCartItemSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
@@ -13,7 +11,6 @@ class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
         fields = ['product_id', 'quantity']
-
 
 
 class AddressSerializer(serializers.ModelSerializer):

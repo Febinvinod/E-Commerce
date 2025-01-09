@@ -34,6 +34,8 @@ PRODUCT_SERVICE_URL = "https://external-product-api.example.com/api"
 
 # Application definition
 
+
+
 INSTALLED_APPS = [
     'kartx_cart',
     'rest_framework',
@@ -46,16 +48,35 @@ INSTALLED_APPS = [
     'catalog',
     'accounts',
     'notification_system',
-    'custom_admin',
-    'payment'
+    'review_rating_system',
+    'rest_framework_simplejwt',
+    # 'OAuth',
+    # 'django.contrib.sites',
+    # 'allauth',
+    # 'allauth.account',
+    # 'allauth.socialaccount',
+    # 'allauth.socialaccount.providers.google'
 ]
+
+# SITE_ID = 2
+
+# SOCIALACCOUNT_PROVIDERS = {
+#     "google":{
+#         "scope":[
+#             "profile",
+#             "email"
+#         ],
+#         "AUTH_PARAMS":{"access_type":"online"}
+#     }
+# }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
+    # 'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -123,6 +144,12 @@ USE_I18N = True
 USE_TZ = True
 
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
@@ -132,6 +159,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# AUTHENTICATION_BACKENDS = [
+#     'django.contrib.auth.backends.ModelBackend',  # Default backend
+#     'allauth.account.auth_backends.AuthenticationBackend',  # For allauth
+# ]
+
+
+# LOGIN_REDIRECT_URL = "/"
+# LOGOUT_REDIRECT_URL = "/"
 
 RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
 
