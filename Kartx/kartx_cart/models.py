@@ -2,27 +2,21 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Cart(models.Model):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="cart", null=True, blank=True
-    )
-    session_key = models.CharField(max_length=40, unique=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    product_id = models.IntegerField()  # Assuming product IDs are integers
+    product_id = models.IntegerField(null=True)  # Assuming product IDs are integers
     quantity = models.PositiveIntegerField(default=1)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    
 
 
 class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="addresses", null=True, blank=True)
-    session_key = models.CharField(max_length=40, null=True, blank=True)  # For guest users
-    street = models.TextField()
+    street = models.TextField(null=True)
     city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100)
+    state = models.CharField(max_length=100, null=True)
     zip_code = models.CharField(max_length=10)
     country = models.CharField(max_length=100)
     is_default = models.BooleanField(default=False)  # Mark as default address

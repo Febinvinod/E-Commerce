@@ -12,13 +12,26 @@ from django.shortcuts import get_object_or_404
 class OrderListView(APIView):
     def get(self, request):
         """Get the list of all orders for the user."""
-        if request.user.is_authenticated:
-            orders = Order.objects.filter(cart__user=request.user)
-        else:
-            return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        serializer = OrderSerializer(orders, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # Get all OrderStatus entries
+        orders_status = OrderStatus.objects.all()
+
+        # Prepare a list to hold combined data
+        combined_data = []
+
+        # Loop through each OrderStatus and manually serialize the associated Order
+        for order_status in orders_status:
+            # Manually serialize the associated Order model
+            order_data = OrderSerializer(order_status.order).data
+            
+            # Prepare the final combined data with both Order and OrderStatus
+            combined_entry = {
+                'order': order_data,
+                'status': order_status.status,
+                'updated_at': order_status.updated_at
+            }
+            combined_data.append(combined_entry)
+
+        return Response(combined_data, status=status.HTTP_200_OK)
 
 class OrderStatusView(APIView):
     def get(self, request, order_id):

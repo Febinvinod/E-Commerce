@@ -10,13 +10,13 @@ class AddCartItemSerializer(serializers.Serializer):
 class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CartItem
-        fields = ['product_id', 'quantity']
+        fields = ['id', 'product_id', 'quantity']
 
 
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
-        fields = [field.name for field in Address._meta.fields if field.name != 'session_key']
+        fields = '__all__'
 
 class ShippingMethodSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,5 +24,7 @@ class ShippingMethodSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'cost']
 
 class CheckoutSerializer(serializers.Serializer):
+    cart_id = serializers.IntegerField()  # Add cart_id to the serializer
     address_id = serializers.IntegerField()
     shipping_method_id = serializers.IntegerField()
+

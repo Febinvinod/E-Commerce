@@ -12,25 +12,16 @@ from ordertrack.models import OrderStatus
 
 class AddressView(APIView):
     def get(self, request):
-        """Get all addresses for the user."""
-        if request.user.is_authenticated:
-            addresses = Address.objects.filter(user=request.user)
-        else:
-            session_key = request.session.session_key
-            addresses = Address.objects.filter(session_key=session_key)
-
+        """Get all addresses."""
+        addresses = Address.objects.all()
         serializer = AddressSerializer(addresses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
         """Add a new address."""
-        if not request.user.is_authenticated and not request.session.session_key:
-            request.session.create()
-
         serializer = AddressSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(user=request.user if request.user.is_authenticated else None, 
-                            session_key=request.session.session_key)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -41,6 +32,7 @@ class ShippingMethodsView(APIView):
         shipping_methods = ShippingMethod.objects.all()
         serializer = ShippingMethodSerializer(shipping_methods, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
     def post(self, request):
         """Add a new shipping method."""
         serializer = ShippingMethodSerializer(data=request.data)
@@ -52,12 +44,13 @@ class ShippingMethodsView(APIView):
 class CheckoutView(APIView):
     def post(self, request):
         """Process checkout."""
-        # Get the cart based on user or session
-        cart = get_object_or_404(
-            Cart,
-            user=request.user if request.user.is_authenticated else None,
-            session_key=request.session.session_key if not request.user.is_authenticated else None
-        )
+        # Get the cart ID from the request
+        cart_id = request.data.get('cart_id')
+        if not cart_id:
+            return Response({"error": "Cart ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get the cart
+        cart = get_object_or_404(Cart, id=cart_id)
 
         # Check if an order already exists for this cart
         if Order.objects.filter(cart=cart).exists():
@@ -93,18 +86,28 @@ class CheckoutView(APIView):
             # Update order status
             OrderStatus.objects.create(order=order, status='processing')
 
-            # Clear the cart
-            cart.items.all().delete()  # Clear all cart items
-            # Alternatively, delete the cart completely if needed:
-            # cart.delete()
+            # Clear the current cart (delete all items)
+            cart.items.all().delete()
+
+            # Create a new cart for the user
+            new_cart = Cart.objects.create()
+
+            # Update the session with the new cart ID
+            request.session['cart_id'] = new_cart.id  # Store the new cart ID in the session
 
             return Response(
-                {"message": "Checkout successful.", "order_id": order.id},
+                {
+                    "message": "Checkout successful.",
+                    "order_id": order.id,
+                     # Return the new cart ID
+                },
                 status=status.HTTP_201_CREATED
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
+
+
 # Simulated ProductService for product validation
 class ProductService:
     @staticmethod
@@ -115,33 +118,51 @@ class ProductService:
 
 class CartView(APIView):
     def get(self, request):
-        """List all items in the user's cart."""
+        """List all items in the cart and return the cart ID."""
+        # Retrieve the cart ID from the session
+        cart_id = request.session.get('cart_id', None)
 
-        if request.user.is_authenticated:
-            cart, _ = Cart.objects.get_or_create(user=request.user)
-        else:
-            if not request.session.session_key:
-                request.session.create()
-            session_key = request.session.session_key
-            cart, _ = Cart.objects.get_or_create(session_key=session_key)
+        if not cart_id:
+            return Response({"error": "No cart found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Retrieve the cart if it exists
+        cart = get_object_or_404(Cart, id=cart_id)
+
+        # Serialize the cart items
         cart_items = cart.items.all()
         serializer = CartItemSerializer(cart_items, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # Return the cart ID along with cart items
+        return Response(
+            {
+                "cart_id": cart.id,  # Include cart ID
+                "items": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
 
 
 class AddToCartView(APIView):
     def post(self, request):
         """Add a product to the cart."""
-        # Determine if the user is anonymous or authenticated
-        if request.user.is_authenticated:
-            cart, _ = Cart.objects.get_or_create(user=request.user)
+        
+        # Retrieve the cart ID from the session
+        cart_id = request.session.get('cart_id', None)
+
+        # If no cart exists, create a new cart
+        if not cart_id:
+            # Create a new cart only when a product is added
+            cart = Cart.objects.create()
+            request.session['cart_id'] = cart.id  # Store the cart ID in the session
         else:
-            # Use session key for anonymous users
-            if not request.session.session_key:
-                request.session.create()
-            session_key = request.session.session_key
-            cart, _ = Cart.objects.get_or_create(session_key=session_key)
+            try:
+                # Retrieve the cart if it exists
+                cart = Cart.objects.get(id=cart_id)
+            except Cart.DoesNotExist:
+                # If cart doesn't exist, create a new cart and update the session
+                cart = Cart.objects.create()
+                request.session['cart_id'] = cart.id  # Store the new cart ID in the session
 
         # Process the cart item
         serializer = AddCartItemSerializer(data=request.data)
@@ -152,48 +173,63 @@ class AddToCartView(APIView):
             # Add or update the product in the cart
             cart_item, created = CartItem.objects.get_or_create(cart=cart, product_id=product_id)
             if not created:
-                cart_item.quantity += quantity
+                cart_item.quantity += quantity  # Update quantity if the product already exists
+            else:
+                cart_item.quantity = quantity  # Set the quantity when a new item is created
             cart_item.save()
 
-            return Response({"message": "Product added to cart."}, status=status.HTTP_201_CREATED)
+            return Response({
+                "message": "Product added to cart.",
+                "cart_id": cart.id  # Return the cart ID to the frontend (optional)
+            }, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class UpdateCartItemView(APIView):
     def put(self, request, product_id):
         """Update the quantity of a product in the cart."""
+        # Retrieve the cart ID from the session
+        cart_id = request.session.get('cart_id', None)
 
-        if request.user.is_authenticated:
-            cart = get_object_or_404(Cart, user=request.user)
-        else:
-            if not request.session.session_key:
-                return Response({"error": "Session not initialized."}, status=status.HTTP_400_BAD_REQUEST)
-            session_key = request.session.session_key
-            cart = get_object_or_404(Cart, session_key=session_key)
+        if not cart_id:
+            return Response({"error": "No cart found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Retrieve the cart using the cart_id
+        cart = get_object_or_404(Cart, id=cart_id)
+
+        # Fetch the cart item associated with the cart and product_id
         cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
 
+        # Get the new quantity from the request data
         quantity = request.data.get("quantity")
         if not quantity or int(quantity) < 1:
             return Response({"error": "Quantity must be at least 1."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Update the cart item quantity
         cart_item.quantity = quantity
         cart_item.save()
+
         return Response({"message": "Cart updated successfully."}, status=status.HTTP_200_OK)
+
 
 class RemoveCartItemView(APIView):
     def delete(self, request, product_id):
         """Remove a product from the cart."""
+        # Retrieve the cart ID from the session
+        cart_id = request.session.get('cart_id', None)
 
-        if request.user.is_authenticated:
-            cart = get_object_or_404(Cart, user=request.user)
-        else:
-            if not request.session.session_key:
-                return Response({"error": "Session not initialized."}, status=status.HTTP_400_BAD_REQUEST)
-            session_key = request.session.session_key
-            cart = get_object_or_404(Cart, session_key=session_key)
+        if not cart_id:
+            return Response({"error": "No cart found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # Retrieve the cart using the cart_id
+        cart = get_object_or_404(Cart, id=cart_id)
+
+        # Fetch the cart item associated with the cart and product_id
         cart_item = get_object_or_404(CartItem, cart=cart, product_id=product_id)
+
+        # Delete the cart item
         cart_item.delete()
 
         return Response({"message": "Product removed from cart."}, status=status.HTTP_200_OK)
