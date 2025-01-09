@@ -6,6 +6,7 @@ from .serializers import *
 from rest_framework.generics import ListAPIView
 from rest_framework import status
 from django.db.models import Sum, Count,F
+from django.db.models import Q
 
 class ProductTypeListAPIView(ListAPIView):
     queryset = ProductType.objects.all()
@@ -148,51 +149,69 @@ class AttributeValueAPIView(APIView):
             return Response({'message': 'Value deleted'}, status=status.HTTP_204_NO_CONTENT)
         except AttributeValue.DoesNotExist:
             return Response({'error': 'Value not found'}, status=status.HTTP_404_NOT_FOUND)
-
+        
+        
 class ProductSearchAPIView(APIView):
     def post(self, request):
-        # Extract the search criteria from the request body (raw JSON)
+        # Extract search criteria from the request body (raw JSON)
         search_params = request.data.get("search", {})
 
         # Initialize the queryset
         products = Product.objects.all()
 
-        # Apply filters only if the search term is provided and not empty
+        # Apply filters if search criteria are provided
         name = search_params.get('name', None)
         brand = search_params.get('brand', None)
         min_price = search_params.get('min_price', None)
         max_price = search_params.get('max_price', None)
         rating = search_params.get('rating', None)
         category = search_params.get('category', None)
-        color = search_params.get('color', None)  # Filter by color attribute (if any)
+        color = search_params.get('color', None)  # Color filter
 
-        # If 'name' is provided and not empty, filter by product name
-        if name:
-            products = products.filter(name__icontains=name)
+        try:
+            # Name filter
+            if name:
+                products = products.filter(name__icontains=name)
 
-        # Apply additional filters if provided
-        if brand:
-            products = products.filter(brand__icontains=brand)
-        if category:
-            products = products.filter(category__name__icontains=category)
-        if min_price:
-            products = products.filter(price__gte=min_price)
-        if max_price:
-            products = products.filter(price__lte=max_price)
-        if rating:
-            products = products.filter(rating__gte=rating)
+            # Brand filter
+            if brand:
+                products = products.filter(brand__icontains=brand)
 
-        # Filter products by color (if provided as a search parameter)
-        if color:
-            products = products.filter(attributes__key='Color', attributes__values__value=color)
+            # Category filter
+            if category:
+                products = products.filter(category__name__icontains=category)
 
-        # If no filters are applied, return an empty response or all products
-        if not products.exists():
-            return Response({"detail": "No products found with the given criteria."}, status=status.HTTP_404_NOT_FOUND)
+            # Price range filter
+            if min_price:
+                products = products.filter(price__gte=float(min_price))
+            if max_price:
+                products = products.filter(price__lte=float(max_price))
 
-        # Serialize the filtered products
-        serializer = ProductSerializer(products, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            # Rating filter
+            if rating:
+                products = products.filter(rating__gte=float(rating))
+
+            # Color filter
+            if color:
+                products = products.filter(
+                    Q(attributes__key='Color') & Q(attributes__values__value=color)
+                )
+
+            # If no products are found
+            if not products.exists():
+                return Response(
+                    {"detail": "No products found with the given criteria."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Serialize the filtered products
+            serializer = ProductSerializer(products, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except ValueError as e:
+            return Response(
+                {"error": f"Invalid filter value: {e}"}, status=status.HTTP_400_BAD_REQUEST
+            )
     
 
 class ProductAnalyticsAPIView(APIView):
@@ -286,11 +305,46 @@ class AllCategoriesAPIView(APIView):
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-class ProductListingAPIView(APIView):
-    def get(self):
-        products = Product.objects.prefetch_related('attributes__values').all()
-        serializer = ProductSerializer(products, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+from rest_framework.generics import ListAPIView
+from .models import Product
+from .serializers import ProductSerializer
+from django.db.models import Q, Prefetch
+
+
+class ProductListAPIView(ListAPIView):
+    queryset = Product.objects.prefetch_related(
+        Prefetch('attributes__values')
+    ).all()
+    serializer_class = ProductSerializer
+
+    def get_queryset(self):
+        """
+        Custom filtering logic for products.
+        Filters by category, price, and attribute values strictly.
+        """
+        queryset = super().get_queryset()
+        category = self.request.query_params.get('category')
+        price = self.request.query_params.get('price')
+        value = self.request.query_params.get('value')
+
+        # Filtering by category
+        if category:
+            queryset = queryset.filter(category=category)
+
+        # Filtering by nested attribute price
+        if price:
+            queryset = queryset.filter(
+                attributes__values__price=price
+            ).distinct()
+
+        # Filtering by nested attribute value
+        if value:
+            queryset = queryset.filter(
+                attributes__values__value=value
+            ).distinct()
+
+        return queryset
+
     
 class JSONSearchAPIView(APIView):
     def post(self, request):
