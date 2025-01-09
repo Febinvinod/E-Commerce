@@ -16,7 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
-
+from django.contrib import admin
+from django.urls import path, include
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('catalog.urls')),
@@ -24,9 +29,10 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')),
     # path('notification_system/', include('notifications.urls')),  # Include the notifications app URLs
     path('notification_system/', include('notification_system.urls')),
-<<<<<<< HEAD
      path('api/', include('review_rating_system.urls')),
-=======
-    path('api/', include('custom_admin.urls')),
->>>>>>> 16344d5c23b29ace7f58595d27dfe004beaea2e6
+     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Include other app URLs
+    path('api/review/', include('review_rating_system.urls')),  # If you have a separate app for review
 ]

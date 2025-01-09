@@ -1,11 +1,12 @@
+# notifications/send_email.py
 from django.core.mail import send_mail
 from django.conf import settings
 
 def send_email(user_info):
-    subject = 'Order Confirmation'
+    subject = 'Order Status Update'
     message = (
         f"Hello {user_info['user_name']},\n\n"
-        f"Your order with Order ID {user_info['order_id']} has been successfully placed.\n\n"
+        f"Your order with Order ID {user_info['order_id']} has been updated to the following status: {user_info['status']}.\n\n"
         f"Thank you for shopping with us."
     )
     from_email = settings.DEFAULT_FROM_EMAIL
