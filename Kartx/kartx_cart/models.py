@@ -1,8 +1,9 @@
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 
 class Cart(models.Model):
-    # user = models.ForeignKey(User, on_delete=models.SET_NULL)  # Make user optional
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)  # Make user optional
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -10,11 +11,12 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product_id = models.IntegerField(null=True)  # Assuming product IDs are integers
     quantity = models.PositiveIntegerField(default=1)
+    visible = models.BooleanField(default=True)
     
 
 
 class Address(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="addresses", null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses", null=True, blank=True)
     street = models.TextField(null=True)
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100, null=True)

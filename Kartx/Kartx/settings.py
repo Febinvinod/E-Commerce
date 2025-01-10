@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     # 'OAuth',
     # 'django.contrib.sites',
-    # 'allauth',
+    'allauth',
     # 'allauth.account',
     # 'allauth.socialaccount',
     # 'allauth.socialaccount.providers.google'
@@ -145,10 +145,15 @@ USE_I18N = True
 USE_TZ = True
 
 
+AUTH_USER_MODEL = 'accounts.User'
+
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
 # Static files (CSS, JavaScript, Images)
