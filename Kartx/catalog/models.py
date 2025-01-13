@@ -27,7 +27,6 @@ class Product(models.Model):
     rating = models.FloatField(default=0.0)
     image = models.ImageField(upload_to='product_images/', blank=True)
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.00)  # Default 10% admin commission
-    approved = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
