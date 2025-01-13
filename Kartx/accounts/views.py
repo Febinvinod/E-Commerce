@@ -8,10 +8,7 @@ from rest_framework import status
 from .models import User, Vendor
 from .serializers import UserSerializer, VendorSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework import views, status
-from rest_framework .permissions import AllowAny
-
+from rest_framework.permissions import AllowAny
 
 # Generate JWT tokens
 def get_tokens_for_user(user):
@@ -35,7 +32,6 @@ class UserRegistrationView(APIView):
 
 class VendorRegistrationView(APIView):
     permission_classes = [AllowAny]
-    authentication_classes = []
     def post(self, request):
         serializer = VendorSerializer(data=request.data)
         if serializer.is_valid():
