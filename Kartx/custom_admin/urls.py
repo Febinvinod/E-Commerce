@@ -14,17 +14,26 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import CustomUserViewSet, VendorViewSet, ProductViewSet, SaleViewSet
+# from django.urls import path, include
+# from rest_framework.routers import DefaultRouter
+# from .views import CustomUserViewSet, VendorViewSet, ProductViewSet, SaleViewSet
 
-router = DefaultRouter()
-router.register(r'users', CustomUserViewSet)
-router.register(r'vendors', VendorViewSet)
-router.register(r'products', ProductViewSet)
-router.register(r'sales', SaleViewSet)
+# router = DefaultRouter()
+# router.register(r'users', CustomUserViewSet)
+# router.register(r'vendors', VendorViewSet)
+# router.register(r'products', ProductViewSet)
+# router.register(r'sales', SaleViewSet)
+
+# urlpatterns = [
+#     path('', include(router.urls)),
+# ]
+from django.urls import path
+from .views import CustomUserAPIView, VendorAPIView, ProductAPIView, SaleAPIView
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('users/', CustomUserAPIView.as_view(), name='customuser-api'),
+    path('vendors/', VendorAPIView.as_view(), name='vendor-api'),
+    path('products/', ProductAPIView.as_view(), name='product-api'),
+    path('sales/', SaleAPIView.as_view(), name='sale-api'),
 ]
 
