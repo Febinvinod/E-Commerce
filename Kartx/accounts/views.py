@@ -1,13 +1,15 @@
 
-
 # views.py
 # views.py
+from venv import logger
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import User, Vendor
 from .serializers import UserSerializer, VendorSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework import views, status
 
 # Generate JWT tokens
 def get_tokens_for_user(user):
@@ -28,8 +30,8 @@ class UserRegistrationView(APIView):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Vendor Registration
 class VendorRegistrationView(APIView):
+    authentication_classes = [JWTAuthentication]
     def post(self, request):
         serializer = VendorSerializer(data=request.data)
         if serializer.is_valid():
@@ -39,7 +41,6 @@ class VendorRegistrationView(APIView):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Login View
 class LoginView(APIView):
     def post(self, request):
         email = request.data.get('email')

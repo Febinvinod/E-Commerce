@@ -35,5 +35,4 @@ urlpatterns = [
     path('profile/', UserProfileAPIView.as_view(), name='user-profile'),
     path('profile/edit/', UserProfileAPIView.as_view(), name='edit-user-profile'),
     path('vendor/dashboard/', VendorDashboardView.as_view(), name='vendor-dashboard'),
-    
 ]

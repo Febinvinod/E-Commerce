@@ -26,6 +26,7 @@ urlpatterns = [
 
     path('admin/', admin.site.urls),
     path('api/', include('catalog.urls')),
+    path('api/', include('custom_admin.urls')),
     path('', include('kartx_cart.urls')),
     path('ordertrack/', include('ordertrack.urls')),
     path('api/accounts/', include('accounts.urls')),
