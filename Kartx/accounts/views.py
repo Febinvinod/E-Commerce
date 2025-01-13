@@ -10,6 +10,8 @@ from .serializers import UserSerializer, VendorSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework import views, status
+from rest_framework .permissions import AllowAny
+
 
 # Generate JWT tokens
 def get_tokens_for_user(user):
@@ -21,6 +23,7 @@ def get_tokens_for_user(user):
 
 # User Registration
 class UserRegistrationView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -31,7 +34,8 @@ class UserRegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VendorRegistrationView(APIView):
-    authentication_classes = [JWTAuthentication]
+    permission_classes = [AllowAny]
+    authentication_classes = []
     def post(self, request):
         serializer = VendorSerializer(data=request.data)
         if serializer.is_valid():
@@ -42,6 +46,7 @@ class VendorRegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
