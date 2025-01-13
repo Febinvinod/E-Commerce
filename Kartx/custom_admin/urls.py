@@ -14,26 +14,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-# from django.urls import path, include
-# from rest_framework.routers import DefaultRouter
-# from .views import CustomUserViewSet, VendorViewSet, ProductViewSet, SaleViewSet
-
-# router = DefaultRouter()
-# router.register(r'users', CustomUserViewSet)
-# router.register(r'vendors', VendorViewSet)
-# router.register(r'products', ProductViewSet)
-# router.register(r'sales', SaleViewSet)
-
-# urlpatterns = [
-#     path('', include(router.urls)),
-# ]
 from django.urls import path
-from .views import CustomUserAPIView, VendorAPIView, ProductAPIView, SaleAPIView
+from .views import *
 
 urlpatterns = [
-    path('users/', CustomUserAPIView.as_view(), name='customuser-api'),
-    path('vendors/', VendorAPIView.as_view(), name='vendor-api'),
-    path('products/', ProductAPIView.as_view(), name='product-api'),
-    path('sales/', SaleAPIView.as_view(), name='sale-api'),
+    path('users/admin', CustomUserAPIView.as_view(), name='customuser-api'),
+    path('vendors/admin', VendorAPIView.as_view(), name='vendor-api'),
+    path('products/admin', ProductAPIView.as_view(), name='product-api'),
+    path('products/admin/<int:pk>/', ProductAPIView.as_view(), name='product-detail'),
+    path('sales/admin', SaleAPIView.as_view(), name='sale-api'),
+    path('admin/users/<int:pk>/', UserDeleteAPIView.as_view(), name='delete-user'),
+    path('admin/vendor/<int:pk>/', VendorDeleteAPIView.as_view(), name='delete-vendor'),
+    
+    
 ]
 
