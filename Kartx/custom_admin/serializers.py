@@ -1,11 +1,10 @@
 from rest_framework import serializers
 from .models import CustomUser, Vendor, Product, Sale
-
+from accounts.models import*
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = CustomUser
-        fields = '__all__'
-
+        model = User
+        fields = ['email', 'name', 'is_vendor', 'is_admin']  # Include only necessary fields
 class VendorSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer()
 

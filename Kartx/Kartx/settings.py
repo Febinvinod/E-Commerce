@@ -34,6 +34,8 @@ PRODUCT_SERVICE_URL = "https://external-product-api.example.com/api"
 
 # Application definition
 
+AUTH_USER_MODEL = 'accounts.User'
+
 
 
 INSTALLED_APPS = [
@@ -56,7 +58,10 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google'
+    'allauth.socialaccount.providers.google',
+    'custom_admin'
+
+    
 ]
 
 # SITE_ID = 2
