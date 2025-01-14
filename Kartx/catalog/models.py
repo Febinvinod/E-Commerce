@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from accounts.models import Vendor
+from accounts.models import *
 
 # Category Model
 class Category(models.Model):
@@ -50,13 +50,15 @@ class AttributeValue(models.Model):
 
 # UserProfile Model
 class UserProfile(models.Model):
-    user = models.OneToOneField(Vendor, on_delete=models.CASCADE)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name='profile'
+    )
     bio = models.TextField(blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True)
     phone_number = models.CharField(max_length=15, blank=True)
 
     def __str__(self):
-        return self.user.user.username
+        return self.user.name
 
 # Order Model
 class Order(models.Model):

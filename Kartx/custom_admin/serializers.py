@@ -3,15 +3,15 @@ from .models import CustomUser, Vendor, Product, Sale
 from accounts.models import*
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ['email', 'name', 'is_vendor', 'is_admin']  # Include only necessary fields
+        model = CustomUser
+        fields = ['id', 'email', 'username', 'is_vendor', 'is_staff']  # Include only necessary fields
 class VendorSerializer(serializers.ModelSerializer):
-    user = CustomUserSerializer()
+    user = CustomUserSerializer()  # Include user details in vendor data
 
     class Meta:
         model = Vendor
-        fields = '__all__'
-
+        fields = ['id', 'user', 'approved']
+        read_only_fields = ['id']
 class ProductSerializer(serializers.ModelSerializer):
     vendor_name = serializers.CharField(source='vendor.user.username', read_only=True)
     vendor_id = serializers.IntegerField(source='vendor.id', read_only=True)

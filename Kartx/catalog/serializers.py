@@ -56,10 +56,10 @@ class ProductTypeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description']
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserProfile
-        fields = ['id', 'username', 'email', 'role', 'phone']
+# class UserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = UserProfile
+#         fields = ['id', 'username', 'email', 'role', 'phone']
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -106,3 +106,12 @@ class ProductUserListing(serializers.ModelSerializer):
     def get_category_name(self, obj):
         return obj.category.name if obj.category else None
     
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['email', 'name', 'password']  # Fields that can be updated
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False},  # Ensure password is write-only
+            'email': {'required': False},  # Email is optional
+            'name': {'required': False}   # Name is optional
+        }

@@ -10,7 +10,10 @@ from django.db.models import Q,Prefetch
 from rest_framework.permissions import IsAuthenticated
 from accounts.models import *
 from django.contrib.auth import get_user_model
-
+from accounts.serializers import *
+from accounts.models import *
+from django.contrib.auth.hashers import make_password
+from rest_framework.permissions import AllowAny
 
 class ProductTypeListAPIView(ListAPIView):
     queryset = ProductType.objects.all()
@@ -321,8 +324,7 @@ class VendorDashboardView(APIView):
 
     
 class AllCategoriesAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [AllowAny]
     def get(self, request):
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
@@ -330,8 +332,7 @@ class AllCategoriesAPIView(APIView):
 
 
 class ProductListAPIView(ListAPIView):
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [AllowAny]
     queryset = Product.objects.prefetch_related(
         Prefetch('attributes__values')
     ).all()
@@ -359,6 +360,7 @@ class ProductListAPIView(ListAPIView):
         return queryset
 
 class JSONSearchAPIView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         search_params = request.data.get("search", {})
         products = Product.objects.all()
@@ -378,62 +380,34 @@ class JSONSearchAPIView(APIView):
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-
-# class UserProfileAPIView(APIView):
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request):
-#         user = request.user
-#         if not user.is_authenticated:
-#             return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
-
-#         profile, created = UserProfile.objects.get_or_create(user=user)
-#         serializer = UserProfileSerializer(profile)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-
-#     def put(self, request):
-#         user = request.user
-#         if not user.is_authenticated:
-#             return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
-
-#         profile, created = UserProfile.objects.get_or_create(user=user)
-#         serializer = UserProfileSerializer(profile, data=request.data, partial=True)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_200_OK)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-
 class UserProfileAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
 
     def get(self, request):
+        # Get the currently logged-in user
         user = request.user
-        if not user.is_authenticated:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        user_profile = getattr(user, 'profile', None)
-        if not user_profile:
-            return Response({'detail': 'User profile not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = UserProfileSerializer(user_profile)
+        # Serialize the user's data
+        serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request):
+        # Get the currently logged-in user
         user = request.user
-        if not user.is_authenticated:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        user_profile = getattr(user, 'profile', None)
-        if not user_profile:
-            return Response({'detail': 'User profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+        # Serialize the incoming data with partial update enabled
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
 
-        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # If password is being updated, hash it
+        if 'password' in serializer.validated_data:
+            serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
+
+        # Save the updated user data
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 

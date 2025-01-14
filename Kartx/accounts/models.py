@@ -53,6 +53,7 @@ class User(AbstractBaseUser, PermissionsMixin):  # Added PermissionsMixin
 class Vendor(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="vendor_profile")
     company_name = models.CharField(max_length=100)
+    approved = models.BooleanField(default=False)
 
     def __str__(self):
         return self.company_name

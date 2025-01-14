@@ -43,18 +43,23 @@ class VendorRegistrationView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
         try:
             user = User.objects.get(email=email)
+            if user.is_vendor and not user.vendor_profile.approved:
+                return Response(
+                    {'error': 'Vendor account is not approved by admin.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
             if user.check_password(password):
                 tokens = get_tokens_for_user(user)
                 return Response({
                     'message': 'Login successful',
                     'tokens': tokens
                 }, status=status.HTTP_200_OK)
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Invalid credentials.'}, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
