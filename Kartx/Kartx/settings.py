@@ -183,12 +183,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
 
-EMAIL_BACKEND = config('EMAIL_BACKEND')
-EMAIL_HOST = config('EMAIL_HOST')
-EMAIL_PORT = config('EMAIL_PORT', cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
-RAZORPAY_SECRET_KEY = config('RAZORPAY_SECRET_KEY')
+EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT='587'
+EMAIL_USE_TLS='True'
+EMAIL_HOST_USER='febnn25@gmail.com'
+EMAIL_HOST_PASSWORD='xvay cukz mxzm chjx ' # Use an app-specific password
+DEFAULT_FROM_EMAIL='febnn25@gmail.com'
 
