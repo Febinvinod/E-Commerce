@@ -12,6 +12,9 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from catalog.models import Product, AttributeValue 
+from decimal import Decimal
+from django.db import transaction
 
 
 
@@ -47,55 +50,73 @@ class ShippingMethodsView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CheckoutView(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         """Process checkout."""
-        # Get the cart ID from the session
         cart_id = request.data.get('cart_id')
         if not cart_id:
             return Response({"error": "Cart ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get the cart for the logged-in user
         cart = get_object_or_404(Cart, id=cart_id, user=request.user)
 
-        # Validate checkout data
         serializer = CheckoutSerializer(data=request.data)
         if serializer.is_valid():
             address_id = serializer.validated_data['address_id']
             shipping_method_id = serializer.validated_data['shipping_method_id']
 
-            # Get address and shipping method
             address = get_object_or_404(Address, id=address_id)
             shipping_method = get_object_or_404(ShippingMethod, id=shipping_method_id)
 
-            # Calculate total cost
-            total_cost = sum(
-                item.quantity * 10 for item in cart.items.all()
-            )  # Example: Replace '10' with actual product cost
-            total_cost += shipping_method.cost
+            total_cost = 0
 
-            # Create Order
-            order = Order.objects.create(
-                cart=cart,
-                address=address,
-                shipping_method=shipping_method,
-                total_cost=total_cost
-            )
-            # Create corresponding OrderStatus
-            OrderStatus.objects.create(order=order)
+            try:
+                with transaction.atomic():
+                    for item in cart.items.all():
+                        product = Product.objects.select_for_update().get(id=item.product_id)
 
-            cart.items.filter(visible=True).update(visible=False)
 
-            # Create a new cart for the user
-            new_cart = Cart.objects.create(user=request.user)
-            request.session['cart_id'] = new_cart.id
+                        # Deduct stock
+                        product.inventory -= item.quantity
+                        product.save()
 
-            return Response({
-                "message": "Checkout successful.",
-                "order_id": order.id,
-                "new_cart_id": new_cart.id  # Return the new cart ID if needed
-            }, status=status.HTTP_201_CREATED)
+                        # Calculate total cost
+                        attribute_value = product.attributes.first()
+                        if attribute_value:
+                            price_value = attribute_value.values.first()
+                            if price_value:
+                                total_cost += item.quantity * Decimal(price_value.price)
+                            else:
+                                return Response({"error": f"No AttributeValue found for product '{product.name}'."},
+                                                status=status.HTTP_404_NOT_FOUND)
+                        else:
+                            return Response({"error": f"No attributes found for product '{product.name}'."},
+                                            status=status.HTTP_404_NOT_FOUND)
+
+                    # Add shipping cost
+                    total_cost += Decimal(shipping_method.cost)
+
+                    # Create order and order status
+                    order = Order.objects.create(
+                        cart=cart,
+                        address=address,
+                        shipping_method=shipping_method,
+                        total_cost=total_cost
+                    )
+                    OrderStatus.objects.create(order=order)
+
+                    # Mark cart items as invisible and create a new cart
+                    cart.items.filter(visible=True).update(visible=False)
+                    new_cart = Cart.objects.create(user=request.user)
+                    request.session['cart_id'] = new_cart.id
+
+                    return Response({
+                        "message": "Checkout successful.",
+                        "order_id": order.id,
+                    }, status=status.HTTP_201_CREATED)
+
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -165,13 +186,34 @@ class AddToCartView(APIView):
             product_id = serializer.validated_data["product_id"]
             quantity = serializer.validated_data["quantity"]
 
+
+            try:
+                product = Product.objects.get(id=product_id)
+            except Product.DoesNotExist:
+                return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Validate stock availability
+            if quantity > product.inventory:
+                return Response({
+                    "error": f"Requested quantity for product '{product.name}' exceeds available stock. "
+                             f"Available: {product.inventory}, Requested: {quantity}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # Add or update the product in the cart
             cart_item, created = CartItem.objects.get_or_create(cart=cart, product_id=product_id)
             if not created:
-                cart_item.quantity += quantity  # Update quantity if the product already exists
+                # Update quantity if the product already exists
+                if cart_item.quantity + quantity > product.inventory:
+                    return Response({
+                        "error": f"Adding this quantity exceeds available stock for product '{product.name}'."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                cart_item.quantity += quantity
             else:
-                cart_item.quantity = quantity  # Set the quantity when a new item is created
+                # Set the quantity when a new item is created
+                cart_item.quantity = quantity
+
             cart_item.save()
+
 
             return Response({
                 "message": "Product added to cart.",

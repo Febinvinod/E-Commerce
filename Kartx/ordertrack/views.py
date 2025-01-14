@@ -14,18 +14,18 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 class OrderListView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
         """Get the list of all orders for the user."""
-        # Get all OrderStatus entries
+        # Get all OrderStatus entries related to the user
         orders_status = OrderStatus.objects.filter(order__cart__user=request.user)
-
 
         # Prepare a list to hold combined data
         combined_data = []
 
         # Loop through each OrderStatus and manually serialize the associated Order
         for order_status in orders_status:
-            # Manually serialize the associated Order model
+            # Serialize the associated Order model with product details via CartItems
             order_data = OrderSerializer(order_status.order).data
             
             # Prepare the final combined data with both Order and OrderStatus
