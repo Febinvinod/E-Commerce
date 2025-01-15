@@ -8,6 +8,7 @@ from rest_framework import status
 from django.db.models import Sum, Count,F
 from django.db.models import Q,Prefetch
 from django.shortcuts import render
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 class ProductTypeListAPIView(ListAPIView):
     queryset = ProductType.objects.all()
