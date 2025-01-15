@@ -9,7 +9,7 @@ from .serializers import AddressSerializer, ShippingMethodSerializer, CheckoutSe
 from django.shortcuts import get_object_or_404
 from ordertrack.models import OrderStatus
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
+from django.urls import reverse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from catalog.models import Product, AttributeValue 
@@ -59,8 +59,8 @@ class CheckoutView(APIView):
             return Response({"error": "Cart ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         cart = get_object_or_404(Cart, id=cart_id, user=request.user)
-
         serializer = CheckoutSerializer(data=request.data)
+
         if serializer.is_valid():
             address_id = serializer.validated_data['address_id']
             shipping_method_id = serializer.validated_data['shipping_method_id']
@@ -74,7 +74,6 @@ class CheckoutView(APIView):
                 with transaction.atomic():
                     for item in cart.items.all():
                         product = Product.objects.select_for_update().get(id=item.product_id)
-
 
                         # Deduct stock
                         product.inventory -= item.quantity
@@ -105,14 +104,11 @@ class CheckoutView(APIView):
                     )
                     OrderStatus.objects.create(order=order)
 
-                    # Mark cart items as invisible and create a new cart
-                    cart.items.filter(visible=True).update(visible=False)
-                    new_cart = Cart.objects.create(user=request.user)
-                    request.session['cart_id'] = new_cart.id
-
+                    # Redirect to payment app view
+                    payment_url = reverse('payment:create_razorpay_order', kwargs={'cart_id': cart.id})
                     return Response({
-                        "message": "Checkout successful.",
-                        "order_id": order.id,
+                        "message": "Checkout successful. Proceed to payment.",
+                        "payment_url": payment_url,
                     }, status=status.HTTP_201_CREATED)
 
             except Exception as e:

@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.urls import path
 from .views import *
+from .views import product_list_view
 
 urlpatterns = [
     path('categories/', CategoryAPIView.as_view(), name='category-list'),
@@ -35,4 +36,6 @@ urlpatterns = [
     path('profile/', UserProfileAPIView.as_view(), name='user-profile'),
     path('profile/edit/', UserProfileAPIView.as_view(), name='edit-user-profile'),
     path('vendor/dashboard/', VendorDashboardView.as_view(), name='vendor-dashboard'),
+    path('products-list/', product_list_view, name='product-list'),#Template for viewing products
+    
 ]

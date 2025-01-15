@@ -30,6 +30,8 @@ ALLOWED_HOSTS = []
 
 # settings.py
 PRODUCT_SERVICE_URL = "https://external-product-api.example.com/api"
+# settings.py
+PAYMENT_APP_URL = "http://your-payment-app-domain.com/payment"
 
 
 # Application definition

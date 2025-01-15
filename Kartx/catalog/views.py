@@ -7,13 +7,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework import status
 from django.db.models import Sum, Count,F
 from django.db.models import Q,Prefetch
-from rest_framework.permissions import IsAuthenticated
-from accounts.models import *
-from django.contrib.auth import get_user_model
-from accounts.serializers import *
-from accounts.models import *
-from django.contrib.auth.hashers import make_password
-from rest_framework.permissions import AllowAny
+from django.shortcuts import render
 
 class ProductTypeListAPIView(ListAPIView):
     queryset = ProductType.objects.all()
@@ -395,20 +389,12 @@ class UserProfileAPIView(APIView):
         # Get the currently logged-in user
         user = request.user
 
-        # Serialize the incoming data with partial update enabled
-        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-
-        # If password is being updated, hash it
-        if 'password' in serializer.validated_data:
-            serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
-
-        # Save the updated user data
-        serializer.save()
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-
-
-    
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        serializer = UserProfileSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+def product_list_view(request):
+    products = Product.objects.all()  # Fetch all products from the database
+    return render(request, 'catalog/product_list.html', {'products': products})
