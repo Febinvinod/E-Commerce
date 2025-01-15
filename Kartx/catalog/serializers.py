@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import *
+from accounts.models import *
+from catalog.serializers import *
 
 
 class AttributeValueSerializer(serializers.ModelSerializer):
@@ -17,31 +19,48 @@ class ProductAttributeSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    attributes = ProductAttributeSerializer(many=True, read_only=True)
+    vendor_name = serializers.SerializerMethodField()
+    vendor_id = serializers.IntegerField(source='vendor.id', read_only=True)
 
     class Meta:
         model = Product
-        fields = [
-            'id', 'vendor_id', 'name', 'description',
-            'inventory', 'category', 'brand', 'rating', 'image', 'attributes'
-        ]
+        fields = '__all__'
+        read_only_fields = ['vendor']
 
+    def get_vendor_name(self, obj):
+        return obj.vendor.company_name if obj.vendor else None
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError("Request context is missing.")
+
+        user = request.user
+        vendor = getattr(user, 'vendor_profile', None)  # Use the correct related name
+
+        if not vendor:
+            raise serializers.ValidationError("The authenticated user does not have a vendor profile.")
+
+        product = Product.objects.create(vendor=vendor, **validated_data)
+        return product
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'description']
 
+
 class ProductTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductType
         fields = ['id', 'name', 'description']
-        
-        
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'role', 'phone']
+
+
+# class UserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = UserProfile
+#         fields = ['id', 'username', 'email', 'role', 'phone']
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -49,13 +68,50 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'bio', 'profile_picture', 'phone_number']
         read_only_fields = ['user']
 
-    def create(self, validated_data):
-        user = validated_data.pop('user')
-        return UserProfile.objects.create(user=user, **validated_data)
+class ProductDetailSerializer(serializers.ModelSerializer):
+    vendor_name = serializers.SerializerMethodField()
+    vendor_id = serializers.IntegerField(source='vendor.id', read_only=True)
+    category_name = serializers.SerializerMethodField()
+    attributes = ProductAttributeSerializer(many=True, read_only=True)
 
-    def update(self, instance, validated_data):
-        instance.bio = validated_data.get('bio', instance.bio)
-        instance.profile_picture = validated_data.get('profile_picture', instance.profile_picture)
-        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
-        instance.save()
-        return instance
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'description', 'inventory', 'brand', 'rating', 'image', 
+                  'commission_rate', 'vendor', 'category', 'vendor_id', 
+                  'vendor_name', 'category_name', 'attributes']
+        read_only_fields = ['vendor']
+
+    def get_vendor_name(self, obj):
+        return obj.vendor.company_name if obj.vendor else None
+
+    def get_category_name(self, obj):
+        return obj.category.name if obj.category else None
+    
+class ProductUserListing(serializers.ModelSerializer):
+    vendor_name = serializers.SerializerMethodField()
+    vendor_id = serializers.IntegerField(source='vendor.id', read_only=True)
+    category_name = serializers.SerializerMethodField()
+    attributes = ProductAttributeSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'description', 'inventory', 'brand', 'rating', 'image', 
+                   'vendor', 'category', 'vendor_id', 
+                  'vendor_name', 'category_name', 'attributes']
+        read_only_fields = ['vendor']
+
+    def get_vendor_name(self, obj):
+        return obj.vendor.company_name if obj.vendor else None
+
+    def get_category_name(self, obj):
+        return obj.category.name if obj.category else None
+    
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['email', 'name', 'password']  # Fields that can be updated
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False},  # Ensure password is write-only
+            'email': {'required': False},  # Email is optional
+            'name': {'required': False}   # Name is optional
+        }

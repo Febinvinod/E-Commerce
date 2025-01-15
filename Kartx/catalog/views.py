@@ -15,6 +15,8 @@ class ProductTypeListAPIView(ListAPIView):
 
 # View for categories
 class CategoryAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request):
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
@@ -28,19 +30,8 @@ class CategoryAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# View for products
 class ProductAPIView(APIView):
-    def get(self,):
-        products = Product.objects.all()
-        serializer = ProductSerializer(products, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request):
-        serializer = ProductSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    permission_classes = [IsAuthenticated]
 
     def get_product(self, pk):
         try:
@@ -48,15 +39,57 @@ class ProductAPIView(APIView):
         except Product.DoesNotExist:
             return None
 
-    def get_product_with_attributes(self, pk):
-        product = self.get_product(pk)
-        if product:
-            serializer = ProductSerializer(product)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
     
-    
-    def put(self, request, pk=None):
+    def get(self, request, pk=None):
+        if pk:  # If `pk` is provided, get a specific product
+            product = self.get_product(pk)
+            if product:
+                serializer = ProductDetailSerializer(product)  # Use the detailed serializer
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        vendor = request.user.vendor_profile  # Get the authenticated vendor
+        products = Product.objects.filter(vendor=vendor)
+
+        name = request.query_params.get('name', None)
+        if name:
+            products = products.filter(name__icontains=name)
+
+        brand = request.query_params.get('brand', None)
+        if brand:
+            products = products.filter(brand__icontains=brand)
+
+        category = request.query_params.get('category', None)
+        if category:
+            products = products.filter(category__name__icontains=category)
+
+        serializer = ProductDetailSerializer(products, many=True)  # Use detailed serializer for all products
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        """
+        Create a new product associated with the authenticated vendor.
+        """
+        user = request.user
+
+        # Check if the user has an associated vendor profile
+        try:
+            vendor = Vendor.objects.get(user=user)  # Fetch the vendor linked to the logged-in user
+        except Vendor.DoesNotExist:
+            return Response({'error': 'Vendor profile not found for the authenticated user.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Pass the request context to the serializer
+        serializer = ProductSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()  # The vendor is automatically associated in the serializer
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, pk):
+        """
+        Update a specific product.
+        """
         product = self.get_product(pk)
         if product:
             serializer = ProductSerializer(product, data=request.data, partial=False)
@@ -66,7 +99,10 @@ class ProductAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    def patch(self, request, pk=None):
+    def patch(self, request, pk):
+        """
+        Partially update a specific product.
+        """
         product = self.get_product(pk)
         if product:
             serializer = ProductSerializer(product, data=request.data, partial=True)
@@ -75,44 +111,25 @@ class ProductAPIView(APIView):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
-    
-    def delete(self, request, pk=None):
+
+    def delete(self, request, pk):
+        """
+        Delete a specific product.
+        """
         product = self.get_product(pk)
         if product:
             product.delete()
             return Response({'message': 'Product deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
-    
+
     def get_product(self, pk):
         try:
             return Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return None
         
-    def get(self, request):
-        products = Product.objects.all()
-
-        # Filter by product name if provided in query parameters
-        name = request.query_params.get('name', None)
-        if name:
-            products = products.filter(name__icontains=name)
-            
-        brand = request.query_params.get('brand', None)
-        if brand:
-            products = products.filter(brand__icontains=brand)
-
-        # Filter by product type if provided in query parameters
-        category = request.query_params.get('category', None)  # Using category for product type
-        if category:
-            products = products.filter(product_type__name=category)
-
-        # Additional filters can go here, like filtering by brand, price, rating, etc.
-        
-        serializer = ProductSerializer(products, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-# View for product attributes
 class ProductAttributeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self,):
         attributes = ProductAttribute.objects.all()
         serializer = ProductAttributeSerializer(attributes, many=True)
@@ -128,6 +145,7 @@ class ProductAttributeAPIView(APIView):
 
 # View for attribute values
 class AttributeValueAPIView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request, attribute_id=None):
         if attribute_id:
             values = AttributeValue.objects.filter(attribute_id=attribute_id)
@@ -154,10 +172,8 @@ class AttributeValueAPIView(APIView):
         
 class ProductSearchAPIView(APIView):
     def post(self, request):
-        # Extract search criteria from the request body (raw JSON)
         search_params = request.data.get("search", {})
 
-        # Initialize the queryset
         products = Product.objects.all()
 
         # Apply filters if search criteria are provided
@@ -253,6 +269,7 @@ class ProductAnalyticsAPIView(APIView):
     
 
 class VendorDashboardView(APIView):
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         # Aggregate data for all vendors
         # Total sales (quantity of products sold)
@@ -301,41 +318,34 @@ class VendorDashboardView(APIView):
 
     
 class AllCategoriesAPIView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-
 class ProductListAPIView(ListAPIView):
+    permission_classes = [AllowAny]
     queryset = Product.objects.prefetch_related(
         Prefetch('attributes__values')
     ).all()
-    serializer_class = ProductSerializer
+    serializer_class = ProductUserListing
 
     def get_queryset(self):
-        """
-        Custom filtering logic for products.
-        Filters by category, price, and attribute values strictly.
-        """
         queryset = super().get_queryset()
         category = self.request.query_params.get('category')
         price = self.request.query_params.get('price')
         value = self.request.query_params.get('value')
 
-        # Filtering by category
         if category:
             queryset = queryset.filter(category=category)
 
-        # Filtering by nested attribute price
         if price:
             queryset = queryset.filter(
                 attributes__values__price=price
             ).distinct()
 
-        # Filtering by nested attribute value
         if value:
             queryset = queryset.filter(
                 attributes__values__value=value
@@ -343,8 +353,8 @@ class ProductListAPIView(ListAPIView):
 
         return queryset
 
-    
 class JSONSearchAPIView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         search_params = request.data.get("search", {})
         products = Product.objects.all()
@@ -364,23 +374,20 @@ class JSONSearchAPIView(APIView):
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-
 class UserProfileAPIView(APIView):
-    permission_classes = []
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated
 
     def get(self, request):
+        # Get the currently logged-in user
         user = request.user
-        if not user.is_authenticated:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        profile, created = UserProfile.objects.get_or_create(user=user)
-        serializer = UserProfileSerializer(profile)
+        # Serialize the user's data
+        serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def put(self, request):
+        # Get the currently logged-in user
         user = request.user
-        if not user.is_authenticated:
-            return Response({'detail': 'Authentication required.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         profile, created = UserProfile.objects.get_or_create(user=user)
         serializer = UserProfileSerializer(profile, data=request.data, partial=True)

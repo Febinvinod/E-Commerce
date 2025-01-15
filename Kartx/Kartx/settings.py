@@ -34,6 +34,8 @@ PRODUCT_SERVICE_URL = "https://external-product-api.example.com/api"
 
 # Application definition
 
+AUTH_USER_MODEL = 'accounts.User'
+
 
 
 INSTALLED_APPS = [
@@ -53,10 +55,14 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     # 'OAuth',
     # 'django.contrib.sites',
-    # 'allauth',
-    # 'allauth.account',
-    # 'allauth.socialaccount',
-    # 'allauth.socialaccount.providers.google'
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'custom_admin'
+
+
+
 ]
 
 # SITE_ID = 2
@@ -145,10 +151,15 @@ USE_I18N = True
 USE_TZ = True
 
 
+AUTH_USER_MODEL = 'accounts.User'
+
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
 # Static files (CSS, JavaScript, Images)
@@ -172,12 +183,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
 
-EMAIL_BACKEND = config('EMAIL_BACKEND')
-EMAIL_HOST = config('EMAIL_HOST')
-EMAIL_PORT = config('EMAIL_PORT', cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
-RAZORPAY_SECRET_KEY = config('RAZORPAY_SECRET_KEY')
+EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT='587'
+EMAIL_USE_TLS='True'
+EMAIL_HOST_USER='febnn25@gmail.com'
+EMAIL_HOST_PASSWORD='xvay cukz mxzm chjx ' # Use an app-specific password
+DEFAULT_FROM_EMAIL='febnn25@gmail.com'
 
