@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'catalog',
     'accounts',
-    'payment',
     'notification_system',
     'review_rating_system',
     'rest_framework_simplejwt',
@@ -185,7 +184,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # LOGOUT_REDIRECT_URL = "/"
 
 RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID')
-
+RAZORPAY_SECRET_KEY= config('RAZORPAY_SECRET_KEY')
 EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST="smtp.gmail.com"
 EMAIL_PORT='587'
