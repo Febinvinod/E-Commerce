@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Page</title>
+</head>
+<body>
+
+    <!-- Button to initiate the payment -->
+    <button id="payButton">Pay Now</button>
+
+    <script>
+        // Attach an event listener to the 'Pay Now' button
+        document.getElementById('payButton').onclick = function() {
+            // Make a fetch request to your API to create the Razorpay order
+            fetch('http://127.0.0.1:8000/payment/create-razorpay-order/8/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json()) // Parse the response as JSON
+            .then(data => {
+                if (data.payment_url) {
+                    // Redirect to Razorpay checkout page if payment_url is available
+                    window.location.href = data.payment_url;
+                } else {
+                    // Alert if payment_url is not available
+                    alert('Payment URL not found.');
+                }
+            })
+            .catch(error => {
+                // Log any errors that occur during the fetch request
+                console.error('Error:', error);
+            });
+        };
+    </script>
+
+</body>
+</html>

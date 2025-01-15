@@ -104,8 +104,13 @@ class CheckoutView(APIView):
                     )
                     OrderStatus.objects.create(order=order)
 
+                     # Mark cart items as invisible and create a new cart
+                    cart.items.filter(visible=True).update(visible=False)
+                    new_cart = Cart.objects.create(user=request.user)
+                    request.session['cart_id'] = new_cart.id
+
                     # Redirect to payment app view
-                    payment_url = reverse('payment:create_razorpay_order', kwargs={'cart_id': cart.id})
+                    payment_url = reverse('create_razorpay_order', kwargs={'cart_id': cart.id})
                     return Response({
                         "message": "Checkout successful. Proceed to payment.",
                         "payment_url": payment_url,
