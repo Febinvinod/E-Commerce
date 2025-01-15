@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from .models import RazorpayOrder
+from kartx_cart.models import Cart
 #from .serializers import CartSerializer, CartItemSerializer, TransactionHistorySerializer
 import razorpay
 from django.conf import settings
@@ -14,7 +15,7 @@ class CreateRazorpayOrderAPIView(APIView):
     def post(self, request, cart_id):
         try:
             # Get the cart by ID
-            cart = get_object_or_404('kartx_cart.Cart', id=cart_id)
+            cart = get_object_or_404(Cart, id=cart_id)
 
             # Check if an order already exists for this cart
             existing_order = RazorpayOrder.objects.filter(cart=cart).first()
@@ -60,7 +61,7 @@ def checkout_view(request, cart_id):
     View to render the Razorpay checkout page.
     """
     # Get the cart details by cart_id
-    cart = get_object_or_404('kartx_cart.Cart', id=cart_id)
+    cart = get_object_or_404(Cart, id=cart_id)
     
     # You can pass additional cart details if needed (e.g., cart items, total, etc.)
     return render(request, 'checkout.html', {'cart_id': cart.id, 'total_price': cart.calculate_total(),'razorpay_key': settings.RAZORPAY_KEY_ID})
@@ -70,7 +71,7 @@ def order_confirmation(request):
 class RetrievePaymentDetailsAPIView(APIView):
     def get(self, request, cart_id):
         try:
-            cart = get_object_or_404('kartx_cart.Cart', id=cart_id)
+            cart = get_object_or_404(Cart, id=cart_id)
 
             # Get the Razorpay order for the cart
             razorpay_order = RazorpayOrder.objects.get(cart=cart)
