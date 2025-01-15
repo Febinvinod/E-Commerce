@@ -2,8 +2,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from .models import Cart, CartItem, RazorpayOrder
-from .serializers import CartSerializer, CartItemSerializer, TransactionHistorySerializer
+from .models import RazorpayOrder
+#from .serializers import CartSerializer, CartItemSerializer, TransactionHistorySerializer
 import razorpay
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
@@ -14,7 +14,7 @@ class CreateRazorpayOrderAPIView(APIView):
     def post(self, request, cart_id):
         try:
             # Get the cart by ID
-            cart = get_object_or_404(Cart, id=cart_id)
+            cart = get_object_or_404('kartx_cart.Cart', id=cart_id)
 
             # Check if an order already exists for this cart
             existing_order = RazorpayOrder.objects.filter(cart=cart).first()
@@ -60,7 +60,7 @@ def checkout_view(request, cart_id):
     View to render the Razorpay checkout page.
     """
     # Get the cart details by cart_id
-    cart = get_object_or_404(Cart, id=cart_id)
+    cart = get_object_or_404('kartx_cart.Cart', id=cart_id)
     
     # You can pass additional cart details if needed (e.g., cart items, total, etc.)
     return render(request, 'checkout.html', {'cart_id': cart.id, 'total_price': cart.calculate_total(),'razorpay_key': settings.RAZORPAY_KEY_ID})
@@ -70,7 +70,7 @@ def order_confirmation(request):
 class RetrievePaymentDetailsAPIView(APIView):
     def get(self, request, cart_id):
         try:
-            cart = get_object_or_404(Cart, id=cart_id)
+            cart = get_object_or_404('kartx_cart.Cart', id=cart_id)
 
             # Get the Razorpay order for the cart
             razorpay_order = RazorpayOrder.objects.get(cart=cart)
@@ -87,19 +87,4 @@ class RetrievePaymentDetailsAPIView(APIView):
             return Response({"error": "No Razorpay order found for this cart."}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-class TransactionHistoryAPIView(APIView):
-    def get(self, request):
-        """
-        Get the transaction history (cart ID, order ID, payment ID, payment status).
-        """
-        try:
-            # Get all carts with associated payment details (order_id, payment_id, status)
-            carts = Cart.objects.filter(razorpayorder__isnull=False)  # Make sure you have related payment info
 
-            # Serialize the carts with transaction data
-            serializer = TransactionHistorySerializer(carts, many=True)
-
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
