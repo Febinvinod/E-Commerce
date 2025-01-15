@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'catalog',
     'accounts',
+    'payment',
     'notification_system',
     'review_rating_system',
     'rest_framework_simplejwt',

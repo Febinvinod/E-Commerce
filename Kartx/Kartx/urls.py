@@ -37,5 +37,5 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     
     # Include other app URLs
-    path('api/review/', include('review_rating_system.urls')),  # If you have a separate app for review
+    path('api/payment/', include('payment.urls')),  # If you have a separate app for review
 ]

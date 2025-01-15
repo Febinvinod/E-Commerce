@@ -1,6 +1,7 @@
 # serializers.py
 from rest_framework import serializers
-from .models import Cart, CartItem, RazorpayOrder
+from kartx_cart.models import Cart, CartItem
+from .models import RazorpayOrder
 
 class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
