@@ -1,6 +1,5 @@
 from django.db import models
 from kartx_cart.models import Cart
-
 class RazorpayOrder(models.Model):
     class PaymentStatus(models.TextChoices):
         CREATED = 'created', 'Created'
@@ -17,7 +16,7 @@ class RazorpayOrder(models.Model):
         choices=PaymentStatus.choices,
         default=PaymentStatus.CREATED
     )
-    payment_date = models.DateTimeField(blank=True, null=True)
+    payment_date = models.DateTimeField(null=True, blank=True)
     amount_paid = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     transaction_id = models.CharField(max_length=255, blank=True, null=True)
 
