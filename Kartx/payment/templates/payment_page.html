@@ -4,38 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Page</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
-
-    <!-- Button to initiate the payment -->
-    <button id="payButton">Pay Now</button>
+    <h1>Payment Page</h1>
+    <button id="pay-button">Pay Now</button>
 
     <script>
-        // Attach an event listener to the 'Pay Now' button
-        document.getElementById('payButton').onclick = function() {
-            // Make a fetch request to your API to create the Razorpay order
-            fetch('http://127.0.0.1:8000/payment/create-razorpay-order/8/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        document.getElementById('pay-button').onclick = function () {
+            const options = {
+                key: "{{ razorpay_key }}", // Dynamically inserted Razorpay Key ID
+                order_id: "order_Pk0JVnWFNaVnDo", // Replace with your generated Order ID
+                amount: 50000, // Amount in paise (optional)
+                currency: "INR", // Currency code
+                name: "Your Business Name", // Displayed on the checkout form
+                description: "Test Transaction",
+                handler: function (response) {
+                    // Callback function on successful payment
+                    alert("Payment Successful!");
+                    console.log(response);
                 },
-            })
-            .then(response => response.json()) // Parse the response as JSON
-            .then(data => {
-                if (data.payment_url) {
-                    // Redirect to Razorpay checkout page if payment_url is available
-                    window.location.href = data.payment_url;
-                } else {
-                    // Alert if payment_url is not available
-                    alert('Payment URL not found.');
+                theme: {
+                    color: "#3399cc" // Optional custom color
                 }
-            })
-            .catch(error => {
-                // Log any errors that occur during the fetch request
-                console.error('Error:', error);
-            });
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
         };
     </script>
-
 </body>
 </html>

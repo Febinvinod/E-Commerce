@@ -2,13 +2,17 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from .models import RazorpayOrder
+from .models import RazorpayOrder, PaymentNew
+from kartx_cart.models import Cart
 #from .serializers import CartSerializer, CartItemSerializer, TransactionHistorySerializer
 import razorpay
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from kartx_cart.models import Cart, Order
 from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import redirect
+import razorpay
+from datetime import datetime
 
 class CreateRazorpayOrderAPIView(APIView):
     def post(self, request, cart_id):
@@ -62,114 +66,90 @@ class CreateRazorpayOrderAPIView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
-# class CreateRazorpayOrderAPIView(APIView):
-#     def post(self, request, cart_id):
-#         try:
-#             # Get the cart by ID
-#             cart = get_object_or_404(Cart, id=cart_id)
-
-#             # Check if an order already exists for this cart
-#             existing_order = RazorpayOrder.objects.filter(cart=cart).first()
-
-#             if existing_order:
-#                 # If order exists, reuse the existing order ID
-#                 return Response({
-#                     "razorpay_order_id": existing_order.order_id,
-#                     "total_price": cart.calculate_total(),
-#                     "currency": "INR",
-#                 }, status=status.HTTP_200_OK)
-
-#             # Calculate the total amount for the cart
-#             total = Order.total_cost
-
-#             # Check if total is valid
-#             if total <= 0:
-#                 return Response({"error": "Cart total must be greater than 0."}, status=status.HTTP_400_BAD_REQUEST)
-
-#             # Initialize Razorpay client with credentials from settings
-#             razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
-
-#             # Create Razorpay order
-#             razorpay_order = razorpay_client.order.create({
-#                 "amount": int(total * 100),  # Razorpay expects amount in paise (100 paise = 1 INR)
-#                 "currency": "INR",
-#                 "payment_capture": "1"
-#             })
-
-#             # Save the Razorpay order with the cart association
-#             RazorpayOrder.objects.create(cart=cart, order_id=razorpay_order['id'])
-
-#             return Response({
-#                 "razorpay_order_id": razorpay_order['id'],
-#                 "total_price": total,
-#                 "currency": "INR",
-#             }, status=status.HTTP_200_OK)
-
-#         except Exception as e:
-#             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-# def order_confirmation(request):
-#     return render(request, 'order_confirmation.html')
-
-class RetrievePaymentDetailsAPIView(APIView):
-    def get(self, request, cart_id):
+def payment_page(request):
+    razorpay_key = settings.RAZORPAY_KEY_ID  # Fetch the key from settings
+    return render(request, "payment_page.html", {"razorpay_key": razorpay_key})
+class RazorpayTransactionHistoryAPIView(APIView):
+    def get(self, request, order_id=None):
         try:
-            cart = get_object_or_404(Cart, id=cart_id)
+            # Initialize Razorpay client with credentials
+            razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
+            
+            if not order_id:
+                return Response({"error": "Order ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Get the Razorpay order for the cart
-            razorpay_order = RazorpayOrder.objects.get(cart=cart)
-
-            return Response({
-                "razorpay_order_id": razorpay_order.order_id,
-                "razorpay_payment_id": razorpay_order.payment_id,
-                "payment_status": razorpay_order.payment_status,
-                "total_price": cart.calculate_total(),
-                "currency": "INR"
-            }, status=status.HTTP_200_OK)
-
-        except RazorpayOrder.DoesNotExist:
-            return Response({"error": "No Razorpay order found for this cart."}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-class PaymentPageView(APIView):
-    def get(self, request, cart_id):
-        try:
-            # Get the cart by ID
-            cart = get_object_or_404(Cart, id=cart_id)
-
-            # Check if an order already exists for this cart
-            existing_order = RazorpayOrder.objects.filter(cart=cart).first()
-
-            if existing_order:
-                # If order exists, reuse the existing Razorpay order ID
-                razorpay_order_id = existing_order.order_id
-            else:
-                # Calculate the total amount for the cart
-                total = cart.calculate_total()  # Assuming you have a method for calculating total
-
-                # Initialize Razorpay client with credentials from settings
-                razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
-
-                # Create Razorpay order
-                razorpay_order = razorpay_client.order.create({
-                    "amount": int(total * 100),  # Razorpay expects amount in paise (100 paise = 1 INR)
-                    "currency": "INR",
-                    "payment_capture": "1"
+            # Fetch the order details using Razorpay API
+            order = razorpay_client.order.fetch(order_id)
+            
+            # Retrieve the payments associated with the order
+            payments = razorpay_client.payment.all({"order_id": order_id})
+            
+            if not payments['items']:
+                return Response({"message": "No payments found for this order."}, status=status.HTTP_404_NOT_FOUND)
+            
+            # Prepare response with payment details
+            payment_data = []
+            for payment in payments['items']:
+                payment_data.append({
+                    "payment_id": payment['id'],
+                    "amount": payment['amount'] / 100,  # Convert from paise to INR
+                    "currency": payment['currency'],
+                    "status": payment['status'],
+                    "payment_method": payment['method'],
+                    "created_at": payment['created_at'],
                 })
 
-                # Save the Razorpay order with the cart association
-                RazorpayOrder.objects.create(cart=cart, order_id=razorpay_order['id'])
-
-                razorpay_order_id = razorpay_order['id']
-
-            # Return the Razorpay order ID and total for payment
             return Response({
-                "razorpay_order_id": razorpay_order_id,
-                "total_price": cart.calculate_total(),
-                "currency": "INR",
+                "order_id": order_id,
+                "payments": payment_data
             }, status=status.HTTP_200_OK)
 
-        except Exception as e:
+        except razorpay.errors.RazorpayError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-def payment_page(request):
-    return render(request, 'payment_page.html')
+class SaveRazorpayPaymentsAPIView(APIView):
+    def get(self, request):
+        try:
+            # Initialize Razorpay client with credentials
+            razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
+            
+            # Set pagination parameters
+            count = int(request.GET.get('count', 10))  # Number of payments per page
+            skip = int(request.GET.get('skip', 0))  # Pagination offset (skip number of records)
+            
+            # Fetch payments from Razorpay
+            payments = razorpay_client.payment.all({"count": count, "skip": skip})
+
+            # Log the full response from Razorpay for debugging purposes
+            print(payments)  # Check the actual structure of the response
+
+            # If no payments are found
+            if not payments['items']:
+                return Response({"message": "No transactions found."}, status=status.HTTP_404_NOT_FOUND)
+
+            # Iterate through the payments and save them to the database
+            for payment in payments['items']:
+                if not PaymentNew.objects.filter(payment_id=payment['id']).exists():  # Updated model reference
+                    # Convert created_at (Unix timestamp) to a datetime object
+                    created_at = datetime.fromtimestamp(payment['created_at'])
+
+                    PaymentNew.objects.create(
+                        payment_id=payment['id'],
+                        amount=payment['amount'] / 100,  # Convert from paise to INR
+                        currency=payment['currency'],
+                        status=payment['status'],
+                        payment_method=payment['method'],
+                        created_at=created_at,  # Store the converted datetime
+                        order_id=payment['order_id'],
+                        customer_id=payment.get('customer_id', None)
+                    )
+
+            # Check if 'has_more' exists, then return the response
+            has_more = payments.get('has_more', False)  # Default to False if not present
+            return Response({
+                "message": "Payments saved successfully.",
+                "total_payments_saved": len(payments['items']),
+                "has_more": has_more,  # Safely access 'has_more'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:  # Catching all exceptions to diagnose better
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
