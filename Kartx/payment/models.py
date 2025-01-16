@@ -1,6 +1,8 @@
 from django.db import models
 from kartx_cart.models import Cart
+
 class RazorpayOrder(models.Model):
+    
     class PaymentStatus(models.TextChoices):
         CREATED = 'created', 'Created'
         PAID = 'paid', 'Paid'
@@ -22,6 +24,8 @@ class RazorpayOrder(models.Model):
 
     def __str__(self):
         return f"Razorpay Order: {self.order_id} for Cart #{self.cart.id}"
+    
+
 class PaymentNew(models.Model):
     payment_id = models.CharField(max_length=255, unique=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -34,3 +38,11 @@ class PaymentNew(models.Model):
 
     def __str__(self):
         return self.payment_id
+class PaymentSuccess(models.Model):
+    cart_id = models.ForeignKey(Cart, on_delete=models.CASCADE)  # Reference to the Cart model
+    order_id = models.CharField(max_length=255)
+    payment_status = models.CharField(max_length=20, default="paid")  # Payment status as 'paid'
+
+    def __str__(self):
+        return f"PaymentSuccess for Cart #{self.cart_id.id} with Order ID {self.order_id}"
+
