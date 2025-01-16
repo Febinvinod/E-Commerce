@@ -112,6 +112,7 @@ class CheckoutView(APIView):
                     # Redirect to payment app view
                     payment_url = reverse('create_razorpay_order', kwargs={'cart_id': cart.id})
                     return Response({
+                        "order_id": order.id,
                         "message": "Checkout successful. Proceed to payment.",
                         "payment_url": payment_url,
                     }, status=status.HTTP_201_CREATED)
