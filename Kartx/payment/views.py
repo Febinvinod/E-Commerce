@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from .models import RazorpayOrder, PaymentNew
+from .models import RazorpayOrder, PaymentNew, PaymentSuccess
 from kartx_cart.models import Cart
 #from .serializers import CartSerializer, CartItemSerializer, TransactionHistorySerializer
 import razorpay
@@ -106,6 +106,53 @@ class RazorpayTransactionHistoryAPIView(APIView):
 
         except razorpay.errors.RazorpayError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+# class SaveRazorpayPaymentsAPIView(APIView):
+#     def get(self, request):
+#         try:
+#             # Initialize Razorpay client with credentials
+#             razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
+            
+#             # Set pagination parameters
+#             count = int(request.GET.get('count', 10))  # Number of payments per page
+#             skip = int(request.GET.get('skip', 0))  # Pagination offset (skip number of records)
+            
+#             # Fetch payments from Razorpay
+#             payments = razorpay_client.payment.all({"count": count, "skip": skip})
+
+#             # Log the full response from Razorpay for debugging purposes
+#             print(payments)  # Check the actual structure of the response
+
+#             # If no payments are found
+#             if not payments['items']:
+#                 return Response({"message": "No transactions found."}, status=status.HTTP_404_NOT_FOUND)
+
+#             # Iterate through the payments and save them to the database
+#             for payment in payments['items']:
+#                 if not PaymentNew.objects.filter(payment_id=payment['id']).exists():  # Updated model reference
+#                     # Convert created_at (Unix timestamp) to a datetime object
+#                     created_at = datetime.fromtimestamp(payment['created_at'])
+
+#                     PaymentNew.objects.create(
+#                         payment_id=payment['id'],
+#                         amount=payment['amount'] / 100,  # Convert from paise to INR
+#                         currency=payment['currency'],
+#                         status=payment['status'],
+#                         payment_method=payment['method'],
+#                         created_at=created_at,  # Store the converted datetime
+#                         order_id=payment['order_id'],
+#                         customer_id=payment.get('customer_id', None)
+#                     )
+
+#             # Check if 'has_more' exists, then return the response
+#             has_more = payments.get('has_more', False)  # Default to False if not present
+#             return Response({
+#                 "message": "Payments saved successfully.",
+#                 "total_payments_saved": len(payments['items']),
+#                 "has_more": has_more,  # Safely access 'has_more'
+#             }, status=status.HTTP_200_OK)
+
+#         except Exception as e:  # Catching all exceptions to diagnose better
+#             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 class SaveRazorpayPaymentsAPIView(APIView):
     def get(self, request):
         try:
@@ -132,6 +179,7 @@ class SaveRazorpayPaymentsAPIView(APIView):
                     # Convert created_at (Unix timestamp) to a datetime object
                     created_at = datetime.fromtimestamp(payment['created_at'])
 
+                    # Save the payment details into PaymentNew model
                     PaymentNew.objects.create(
                         payment_id=payment['id'],
                         amount=payment['amount'] / 100,  # Convert from paise to INR
@@ -143,10 +191,31 @@ class SaveRazorpayPaymentsAPIView(APIView):
                         customer_id=payment.get('customer_id', None)
                     )
 
+            # Now let's check the RazorpayOrder model and update PaymentSuccess if order_id matches
+            razorpay_orders = RazorpayOrder.objects.all()
+            payment_news = PaymentNew.objects.all()
+
+            # Iterate through each RazorpayOrder and check if order_id exists in PaymentNew
+            for razorpay_order in razorpay_orders:
+                payment_new = payment_news.filter(order_id=razorpay_order.order_id).first()
+
+                if payment_new and payment_new.status.lower() == 'captured':
+                    # If payment status is 'paid' and matching order_id exists, create PaymentSuccess
+                    if not PaymentSuccess.objects.filter(order_id=razorpay_order.order_id).exists():
+                        # Create PaymentSuccess entry
+                        paymentsuccess=PaymentSuccess.objects.create(
+                            cart_id=razorpay_order.cart,  # Reference the cart associated with the order
+                            order_id=razorpay_order.order_id,
+                            payment_status='paid'
+                        )
+                        # Update RazorpayOrder payment status to 'paid'
+                        #razorpay_order.payment_status = RazorpayOrder.PaymentStatus.PAID
+                        paymentsuccess.save()
+
             # Check if 'has_more' exists, then return the response
             has_more = payments.get('has_more', False)  # Default to False if not present
             return Response({
-                "message": "Payments saved successfully.",
+                "message": "Payments saved successfully and PaymentSuccess updated.",
                 "total_payments_saved": len(payments['items']),
                 "has_more": has_more,  # Safely access 'has_more'
             }, status=status.HTTP_200_OK)
